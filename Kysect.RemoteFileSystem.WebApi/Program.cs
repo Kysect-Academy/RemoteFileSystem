@@ -1,9 +1,10 @@
-var builder = WebApplication.CreateBuilder(args);
+using Kysect.RemoteFileSystem.Core;
 
-// Add services to the container.
+WebApplicationBuilder builder = WebApplication.CreateBuilder(args);
+string pathToLocalFileSystem = builder.Configuration["FileSystemPath"] ?? throw new ArgumentException("FileSystemPath is not provided.");
+builder.Services.AddSingleton<IFileSystemAccessor>(new FileSystemAccessor(pathToLocalFileSystem));
 
 builder.Services.AddControllers();
-// Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 

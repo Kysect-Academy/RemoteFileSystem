@@ -1,3 +1,4 @@
+using Kysect.RemoteFileSystem.Core;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Kysect.RemoteFileSystem.WebApi.Controllers
@@ -6,17 +7,29 @@ namespace Kysect.RemoteFileSystem.WebApi.Controllers
     [Route("[controller]")]
     public class FileSystemController : ControllerBase
     {
-        private readonly ILogger<FileSystemController> _logger;
+        private readonly IFileSystemAccessor _fileSystemAccessor;
 
-        public FileSystemController(ILogger<FileSystemController> logger)
+        public FileSystemController(IFileSystemAccessor fileSystemAccessor)
         {
-            _logger = logger;
+            _fileSystemAccessor = fileSystemAccessor;
         }
 
-        [HttpGet()]
-        public IActionResult GetOk()
+        [HttpGet("groups")]
+        public ActionResult<IReadOnlyCollection<Group>> GetGroups()
         {
-            return Ok();
+            return Ok(_fileSystemAccessor.GetGroups());
+        }
+
+        [HttpGet("groups/{selectedGroup}/submits")]
+        public ActionResult<IReadOnlyCollection<StudentSubmit>> GetStudentSubmits(string selectedGroup)
+        {
+            return Ok(_fileSystemAccessor.GetStudentSubmits(selectedGroup));
+        }
+
+        [HttpGet("submits")]
+        public ActionResult<StudentSubmitContent> GetSubmitContent(string group, string studentName, string assignmentTitle, string submitDate)
+        {
+            return Ok(_fileSystemAccessor.GetSubmitContent(new StudentSubmit(group, studentName, assignmentTitle, submitDate)));
         }
     }
 }
