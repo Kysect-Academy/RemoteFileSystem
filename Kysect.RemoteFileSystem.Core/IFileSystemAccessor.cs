@@ -54,8 +54,7 @@ public class FileSystemAccessor : IFileSystemAccessor
     }
 
     private static IEnumerable<StudentSubmit> GetSubmitDirectories(IReadOnlyCollection<string> submitDates,
-        string groupName, string studentName,
-        string assignmentName)
+        string groupName, string studentName, string assignmentName)
     {
         if (submitDates.Count > 0)
         {
