@@ -65,7 +65,7 @@ public class FileSystemAccessor : IFileSystemAccessor
 
         return new List<StudentSubmit>
         {
-            new(groupName, studentName, assignmentName, null)
+            new StudentSubmit(groupName, studentName, assignmentName, null)
         };
     }
 
