@@ -92,9 +92,9 @@ public class FileSystemAccessor : IFileSystemAccessor
 
         ValidateDateFolderPresence(pathWithoutDate);
 
-        return studentSubmit.SubmitDate is not null
-            ? Path.Combine(pathWithoutDate, studentSubmit.SubmitDate)
-            : pathWithoutDate;
+        return studentSubmit.SubmitDate is null
+            ? pathWithoutDate
+            : Path.Combine(pathWithoutDate, studentSubmit.SubmitDate);
     }
 
     private void ValidateDateFolderPresence(string pathWithoutDate)
