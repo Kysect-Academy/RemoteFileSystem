@@ -14,7 +14,7 @@ public class FileSystemAccessor : IFileSystemAccessor
     private readonly string _rootPath;
     private readonly string _submitDateFormat;
 
-    public FileSystemAccessor(string rootPath, string submitDateFormat = "yyyyMMddHHmmss")
+    public FileSystemAccessor(string rootPath, string submitDateFormat)
     {
         _rootPath = rootPath;
         _submitDateFormat = submitDateFormat;
