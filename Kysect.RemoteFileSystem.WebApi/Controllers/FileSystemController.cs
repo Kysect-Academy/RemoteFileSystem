@@ -27,7 +27,7 @@ namespace Kysect.RemoteFileSystem.WebApi.Controllers
         }
 
         [HttpGet("submits")]
-        public ActionResult<StudentSubmitContent> GetSubmitContent(string group, string studentName, string assignmentTitle, string submitDate)
+        public ActionResult<StudentSubmitContent> GetSubmitContent(string group, string studentName, string assignmentTitle, string? submitDate)
         {
             return Ok(_fileSystemAccessor.GetSubmitContent(new StudentSubmit(group, studentName, assignmentTitle, submitDate)));
         }

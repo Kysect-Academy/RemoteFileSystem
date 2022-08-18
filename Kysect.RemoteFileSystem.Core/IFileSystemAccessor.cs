@@ -1,4 +1,6 @@
-﻿namespace Kysect.RemoteFileSystem.Core;
+﻿using System.Globalization;
+
+namespace Kysect.RemoteFileSystem.Core;
 
 public interface IFileSystemAccessor
 {
@@ -10,10 +12,12 @@ public interface IFileSystemAccessor
 public class FileSystemAccessor : IFileSystemAccessor
 {
     private readonly string _rootPath;
+    private readonly string _submitDateFormat;
 
-    public FileSystemAccessor(string rootPath)
+    public FileSystemAccessor(string rootPath, string submitDateFormat = "yyyyMMddHHmmss")
     {
         _rootPath = rootPath;
+        _submitDateFormat = submitDateFormat;
     }
 
     public IReadOnlyCollection<Group> GetGroups()
@@ -27,20 +31,21 @@ public class FileSystemAccessor : IFileSystemAccessor
 
     public IReadOnlyCollection<StudentSubmit> GetStudentSubmits(string selectedGroup)
     {
-        List<StudentSubmit> result = new List<StudentSubmit>();
+        var result = new List<StudentSubmit>();
 
         string groupDirectory = Path.Combine(_rootPath, selectedGroup);
         string groupName = new DirectoryInfo(groupDirectory).Name;
         foreach (string studentDirectory in Directory.EnumerateDirectories(groupDirectory))
         {
             string studentName = new DirectoryInfo(studentDirectory).Name;
-            foreach (var assignmentDirectory in Directory.EnumerateDirectories(studentDirectory))
+            foreach (string assignmentDirectory in Directory.EnumerateDirectories(studentDirectory))
             {
                 string assignmentName = new DirectoryInfo(assignmentDirectory).Name;
-                List<StudentSubmit> submitDirectories = GetChildDirectoryNames(assignmentDirectory)
-                    .Select(s => new StudentSubmit(groupName, studentName, assignmentName, s))
-                    .ToList();
 
+                IReadOnlyCollection<string> submitDates = GetChildDirectoryNames(assignmentDirectory);
+
+                IEnumerable<StudentSubmit> submitDirectories =
+                    GetSubmitDirectories(submitDates, groupName, studentName, assignmentName);
                 result.AddRange(submitDirectories);
             }
         }
@@ -48,16 +53,29 @@ public class FileSystemAccessor : IFileSystemAccessor
         return result;
     }
 
+    private static IEnumerable<StudentSubmit> GetSubmitDirectories(IReadOnlyCollection<string> submitDates,
+        string groupName, string studentName,
+        string assignmentName)
+    {
+        if (submitDates.Count > 0)
+        {
+            return submitDates
+                .Select(submitDate => new StudentSubmit(groupName, studentName, assignmentName, submitDate))
+                .ToList();
+        }
+
+        return new List<StudentSubmit>
+        {
+            new(groupName, studentName, assignmentName, null)
+        };
+    }
+
+
     public StudentSubmitContent GetSubmitContent(StudentSubmit studentSubmit)
     {
-        string pathToContent = Path.Combine(
-            _rootPath,
-            studentSubmit.Group,
-            studentSubmit.StudentName,
-            studentSubmit.AssignmentTitle,
-            studentSubmit.SubmitDate);
+        string pathToContent = GetPath(studentSubmit);
 
-        List<StudentSubmitFileInfo> submitFiles = Directory
+        var submitFiles = Directory
             .EnumerateFiles(pathToContent, "*", SearchOption.AllDirectories)
             .Select(f => new StudentSubmitFileInfo(Path.GetRelativePath(pathToContent, f), File.ReadAllLines(f)))
             .ToList();
@@ -65,7 +83,32 @@ public class FileSystemAccessor : IFileSystemAccessor
         return new StudentSubmitContent(submitFiles);
     }
 
-    private IReadOnlyCollection<string> GetChildDirectoryNames(string directoryPath)
+    private string GetPath(StudentSubmit studentSubmit)
+    {
+        string pathWithoutDate = Path.Combine(
+            _rootPath,
+            studentSubmit.Group,
+            studentSubmit.StudentName,
+            studentSubmit.AssignmentTitle);
+
+        ValidateDateFolderPresence(pathWithoutDate);
+
+        return studentSubmit.SubmitDate is not null
+            ? Path.Combine(pathWithoutDate, studentSubmit.SubmitDate)
+            : pathWithoutDate;
+    }
+
+    private void ValidateDateFolderPresence(string pathWithoutDate)
+    {
+        if (GetChildDirectoryNames(pathWithoutDate)
+            .Any(folder => DateTime.TryParseExact(folder, _submitDateFormat, new CultureInfo(""), DateTimeStyles.None,
+                out DateTime _)))
+        {
+            throw new ArgumentException("Passed incomplete submit info: directory contains submit date");
+        }
+    }
+
+    private static IReadOnlyCollection<string> GetChildDirectoryNames(string directoryPath)
     {
         return Directory
             .EnumerateDirectories(directoryPath)
@@ -76,6 +119,9 @@ public class FileSystemAccessor : IFileSystemAccessor
 }
 
 public record struct Group(string Name, IReadOnlyCollection<string> Students);
+
 public record struct StudentSubmit(string Group, string StudentName, string AssignmentTitle, string SubmitDate);
+
 public record struct StudentSubmitContent(IReadOnlyCollection<StudentSubmitFileInfo> Files);
+
 public record struct StudentSubmitFileInfo(string RelativePath, string[] Content);
